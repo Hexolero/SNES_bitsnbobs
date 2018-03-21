@@ -28,11 +28,11 @@
 .DEFINE JOYPAD_STATE $00E000 	; Where to store joypad data. 2 bytes of the form: ABLR0000 BYSSUDLR (a, b, lt, rt || b, y, sel, st, up, down, left, right)
 								; This takes up bytes $00E000 and $00E001. Read from here if you want to quickly run bit checks (i.e. (JOYPAD_STATE + 1) & 11------)
 
-; These require an explanation: The state of the button press is stored
-; in the leftmost bit of memory (i.e. 1------- for on, 0------- for off).
-; Bits 0-6 contain the number of frames (i.e. VBlanks) that the button has
-; been pressed for. This maxes out at 127, at which point the byte reads $FF
-; until the button is released, at which point the byte resets to $00. (127 frames ~= 2.12sec)
+; These addresses contain a byte which holds the number of frames the button has been pressed for.
+; If you want to use these to do simple press checks, do a CMP #0 to see if they're pressed at all.
+; If you want to see if they've been held for x frames, do a CMP #x and check for > than / < than.
+; The value maxes out at $FF, i.e. 255 frames = 4.25sec.
+; When the button is not currently pressed, it is immediately reset to $00.
 .DEFINE BTN_A 		$00E002
 .DEFINE BTN_B 		$00E003
 .DEFINE BTN_X 		$00E004
@@ -104,7 +104,6 @@ NoMatchABLR:
 	bra ContinueLoopOneRJP
 MatchABLR:
 	lda BTN_A,X
-	ora #%10000000 ; set the leftmost bit to be on
 	ina
 	bcs OverflowBtnABLR ; branch if overflow occured
 NoOverflowBtnABLR:
@@ -135,7 +134,6 @@ NoMatchBYSSUDLR:
 	bra ContinueLoopTwoRJP
 MatchBYSSUDLR:
 	lda BTN_UP,X
-	ora %10000000 ; set the leftmost bit to be on
 	ina
 	bcs OverflowBtnBYSSUDLR ; branch if overflow occured
 NoOverflowBtnBYSSUDLR:
