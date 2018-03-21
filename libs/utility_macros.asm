@@ -25,11 +25,12 @@
 ;=================================================
 ; Define statements used for general management:
 
-.DEFINE JOYPAD_STATE $00E000 	; Where to store joypad data. 2 bytes of the form: ABLR0000 BYSSUDLR (a, b, lt, rt || b, y, sel, st, up, down, left, right)
-								; This takes up bytes $00E000 and $00E001. Read from here if you want to quickly run bit checks (i.e. (JOYPAD_STATE + 1) & 11------)
+.DEFINE JOYPAD_STATE	$00E000 ; Where to store joypad data. 2 bytes of the form: ABLR0000 BYSSUDLR (a, b, lt, rt || b, y, sel, st, up, down, left, right)
+.DEFINE JOYPAD_STATE_2	$00E001	; This takes up bytes $00E000 and $00E001. Read from here if you want to quickly run bit checks (i.e. JOYPAD_STATE_2 & 11------)
 
 ; These addresses contain a byte which holds the number of frames the button has been pressed for.
 ; If you want to use these to do simple press checks, do a CMP #0 to see if they're pressed at all.
+; (Note: CMP #x and AND #x both take 3-m cycles, so either of them is equally fast for press checks.)
 ; If you want to see if they've been held for x frames, do a CMP #x and check for > than / < than.
 ; The value maxes out at $FF, i.e. 255 frames = 4.25sec.
 ; When the button is not currently pressed, it is immediately reset to $00.
@@ -85,11 +86,9 @@ ReadJoypad:
 	phx
 	phy ; store working registers
 	
+	rep #$20 ; use 16-bit registers for a single read/write
 	lda $4218
-	sta JOYPAD_STATE
-	lda $4219
-	ldx #1
-	sta JOYPAD_STATE,X ; read joypad data into the two bytes at JOYPAD_STATE
+	sta JOYPAD_STATE ; read joypad data into the two bytes at JOYPAD_STATE
 	
 	sep #$30 ; use 8-bit accumulator/x/y
 	ldx #0 ; index which button we're checking
@@ -126,7 +125,7 @@ EndLoopOneRJP:
 	ldy #%10000000 ; store bit check in Y
 LoopTwoRJP:
 	tya
-	and JOYPAD_STATE
+	and JOYPAD_STATE_2
 	bne MatchBYSSUDLR ; check against bit pattern
 NoMatchBYSSUDLR:
 	lda $00
